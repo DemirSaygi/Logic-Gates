@@ -71,7 +71,7 @@ let doFastProcess = true;			//DEBUG
 let showFP = false 					//DEBUG
 let showHitbox = false				//DEBUG
 let showIsPowered = false    		//DEBUG
-let autoEnterFile = {"name" : "test", "isEnter": true}			//DEBUG
+let autoEnterFile = {"name" : "test", "isEnter": false}			//DEBUG
 
 let shiftKeyActive = false;
 let toggleWithTab = false;
