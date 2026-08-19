@@ -1,0 +1,240 @@
+
+			// --------- Helpers ----------
+			const EPS = 1e-6;
+			const MIN_COS_HALF_GLOBAL = 0.18;
+			let cableWidth = cableBoldness[this.type] * camera.scale;
+			if (this.highlight) cableWidth *= 1.2;
+
+			function safeUnit(x, y) {
+			const L = Math.hypot(x, y);
+			if (!isFinite(L) || L < EPS) return { x: 0, y: 0, len: 0 };
+			return { x: x / L, y: y / L, len: L };
+			}
+			function normalOf(vx, vy) {
+			const u = safeUnit(vx, vy);
+			return { x: -u.y, y: u.x, len: u.len };
+			}
+			function alignToRef(v, refN) {
+			// v ve refN aynı yöne bakmıyorsa ters çevir
+			return (v.x * refN.x + v.y * refN.y >= 0) ? v : { x: -v.x, y: -v.y };
+			}
+
+			/**
+			 * offsetStablePath: artık refN parametresi alır ve köşe normallerini refN'e hizalar
+			 * screenPts = [{x,y},...], offset in px
+			 */
+			function offsetStablePath(screenPts, offset, refN, opts = {}) {
+			const MIN_COS_HALF = opts.minCosHalf ?? MIN_COS_HALF_GLOBAL;
+			const MITER_LEN_MAX = opts.miterMax ?? 1000;
+			const n = screenPts.length;
+			const out = new Array(n);
+			if (n === 0) return out;
+			if (n === 1) { out[0] = { x: screenPts[0].x, y: screenPts[0].y }; return out; }
+
+			for (let i = 0; i < n; i++) {
+				const p  = screenPts[i];
+				const p0 = screenPts[i - 1] ?? p;
+				const p1 = screenPts[i + 1] ?? p;
+
+				let s1x = p.x - p0.x, s1y = p.y - p0.y;
+				let s2x = p1.x - p.x,  s2y = p1.y - p.y;
+				const l1 = Math.hypot(s1x, s1y);
+				const l2 = Math.hypot(s2x, s2y);
+
+				if (l1 < EPS && l2 < EPS) { out[i] = { x: p.x, y: p.y }; continue; }
+				if (l1 < EPS) { s1x = s2x; s1y = s2y; }
+				if (l2 < EPS) { s2x = s1x; s2y = s1y; }
+
+				const t1 = safeUnit(s1x, s1y);
+				const t2 = safeUnit(s2x, s2y);
+				let n1 = { x: -t1.y, y: t1.x };
+				let n2 = { x: -t2.y, y: t2.x };
+
+				// REFERANS NORMALINE HİZALA (kritik)
+				if (refN) {
+				n1 = alignToRef(n1, refN);
+				n2 = alignToRef(n2, refN);
+				}
+
+				// bisector raw + normalize fallback
+				let bx = n1.x + n2.x, by = n1.y + n2.y;
+				let bl = Math.hypot(bx, by);
+				if (bl < EPS) { bx = n1.x; by = n1.y; bl = 1; } else { bx /= bl; by /= bl; }
+
+				// cosHalf clamp
+				let cosHalf = bx * n1.x + by * n1.y;
+				if (!isFinite(cosHalf)) cosHalf = (cosHalf >= 0 ? MIN_COS_HALF : -MIN_COS_HALF);
+				if (Math.abs(cosHalf) < MIN_COS_HALF) cosHalf = (cosHalf >= 0 ? MIN_COS_HALF : -MIN_COS_HALF);
+
+				let miter = offset / cosHalf;
+				if (!isFinite(miter)) miter = Math.sign(miter || 1) * MITER_LEN_MAX;
+				if (Math.abs(miter) > MITER_LEN_MAX) miter = Math.sign(miter) * MITER_LEN_MAX;
+
+				out[i] = { x: p.x + bx * miter, y: p.y + by * miter };
+			}
+			return out;
+			}
+
+			function cpToWorld(wp) {
+			if (!wp) return { x: NaN, y: NaN };
+			if (Array.isArray(wp)) return { x: Number(wp[0]), y: Number(wp[1]) };
+			if (typeof wp === 'object') {
+				if ('x' in wp && 'y' in wp) return { x: Number(wp.x), y: Number(wp.y) };
+				if (0 in wp && 1 in wp) return { x: Number(wp[0]), y: Number(wp[1]) };
+			}
+			return { x: NaN, y: NaN };
+			}
+
+			// --------- SHOW ----------
+			const litValues = this.inputCode != null ? decode(outputs, this.inputCode).lit.slice() : Array(this.type).fill(false);
+
+			// build screenPts in original path order 
+			const screenPts = [];
+			for (const wp of this.connectionPoints) {
+			const w = cpToWorld(wp);
+			if (!isFinite(w.x) || !isFinite(w.y)) continue;
+			const sp = worldToScreen(w.x, w.y);
+			if (!isFinite(sp.x) || !isFinite(sp.y)) continue;
+			if (!screenPts.length || Math.hypot(screenPts.at(-1).x - sp.x, screenPts.at(-1).y - sp.y) > 0.3) {
+				screenPts.push(sp);
+			}
+			}
+			
+
+			const STRIPE_SPACING = cableWidth / Math.max(1, this.type);
+			const MITER_LEN_MAX = 8 * STRIPE_SPACING;
+			const MIN_COS_HALF = MIN_COS_HALF_GLOBAL;
+			const MIN_LINE_WIDTH = 0.8;
+			const ANGLE_THRESHOLD = Math.PI / 6; // 30 deg
+			const cosThreshold = Math.cos(ANGLE_THRESHOLD);
+
+			// Determine reference normal from first segment (so stripe order stays consistent)
+			let refN;
+			if (screenPts.length >= 2) {
+			const d0 = { x: screenPts[1].x - screenPts[0].x, y: screenPts[1].y - screenPts[0].y };
+			refN = normalOf(d0.x, d0.y);
+			if (refN.len === 0) refN = { x: 0, y: -1, len: 1 };
+			} else {
+			refN = { x: 0, y: -1, len: 1 };
+			}
+
+			for (let s = 0; s < this.type; s++) {
+			const offset = (s - (this.type - 1) / 2) * STRIPE_SPACING;
+			const rawLineW = STRIPE_SPACING;
+			const lineW = Math.max(MIN_LINE_WIDTH, rawLineW + 0.15);
+
+			// base offsets aligned to refN
+			const baseOffset = offsetStablePath(screenPts, offset, refN, { minCosHalf: MIN_COS_HALF, miterMax: MITER_LEN_MAX });
+
+			const n = screenPts.length;
+			const modified = [];
+
+			for (let i = 0; i < n; i++) {
+				if (i > 0 && i < n - 1) {
+				const Pprev = screenPts[i - 1];
+				const Pcur  = screenPts[i];
+				const Pnext = screenPts[i + 1];
+
+				const t1 = safeUnit(Pcur.x - Pprev.x, Pcur.y - Pprev.y);
+				const t2 = safeUnit(Pnext.x - Pcur.x, Pnext.y - Pcur.y);
+				let cosTheta = t1.x * t2.x + t1.y * t2.y;
+				cosTheta = Math.max(-1, Math.min(1, cosTheta));
+
+				// smallAngle check öncesine ekle
+				const angle = Math.acos(cosTheta); // radian
+				c.save();
+				c.beginPath();
+				c.strokeStyle = "rgba(255,0,0,0.7)";
+				c.lineWidth = 0.5;
+
+				// Arc merkez = Pcur
+				// Başlangıç vektörü = t1
+				// Bitiş vektörü = t2
+				const startAngle = Math.atan2(t1.y, t1.x);
+				const endAngle   = Math.atan2(t2.y, t2.x);
+
+				// Arc çiz
+				c.arc(Pcur.x, Pcur.y, 20, startAngle, endAngle, false);
+				c.stroke();
+				c.restore();
+
+				// Ayrıca ekrana açıyı yaz
+				c.save();
+				c.fillStyle = "red";
+				c.font = "18px monospace";
+				c.fillText((angle * 180 / Math.PI).toFixed(1) + "°", Pcur.x + 5, Pcur.y - 5);
+				c.restore();
+
+				// smallAngle if cosTheta > cosThreshold (angle < threshold)
+				const smallAngle = (180 - (angle * 180 / Math.PI)) < 30;
+				if (smallAngle) {
+					// build A1/A2 using normals aligned to refN
+					let n1 = { x: -t1.y, y: t1.x };
+					let n2 = { x: -t2.y, y: t2.x };
+					n1 = alignToRef(n1, refN);
+					n2 = alignToRef(n2, refN);
+
+					const A1 = { x: Pcur.x + n1.x * offset, y: Pcur.y + n1.y * offset };
+					const A2 = { x: Pcur.x + n2.x * offset, y: Pcur.y + n2.y * offset };
+
+					// ensure modified contains all base points up to i-1
+					if (modified.length === 0) {
+					for (let k = 0; k < i; k++) {
+						const p = baseOffset[k];
+						if (!p) continue;
+						if (!modified.length || Math.hypot(modified.at(-1).x - p.x, modified.at(-1).y - p.y) > 0.1) {
+						modified.push({ x: p.x, y: p.y });
+						}
+					}
+					}
+
+					// add A1 then A2 (avoid duplicates)
+					if (!modified.length || Math.hypot(modified.at(-1).x - A1.x, modified.at(-1).y - A1.y) > 0.1) {
+					modified.push(A1);
+					}
+					if (Math.hypot(modified.at(-1).x - A2.x, modified.at(-1).y - A2.y) > 0.1) {
+					modified.push(A2);
+					}
+
+					// continue (skip adding baseOffset[i] / joining logic here; next loop handles)
+					continue;
+				}
+				}
+
+				// default: push baseOffset point (if exists)
+				const bp = baseOffset[i];
+				if (!bp) continue;
+				if (!modified.length || Math.hypot(modified.at(-1).x - bp.x, modified.at(-1).y - bp.y) > 0.1) {
+				modified.push({ x: bp.x, y: bp.y });
+				}
+			}
+
+			// clean tiny segments
+			for (let i = 1; i < modified.length; i++) {
+				const a = modified[i - 1];
+				const b = modified[i];
+				if (Math.hypot(a.x - b.x, a.y - b.y) < 0.1) {
+				a.x = (a.x + b.x) / 2;
+				a.y = (a.y + b.y) / 2;
+				modified.splice(i, 1);
+				i--;
+				}
+			}
+
+			if (modified.length < 2) continue;
+
+			// draw
+			c.beginPath();
+			c.moveTo(modified[0].x, modified[0].y);
+			for (let i = 1; i < modified.length; i++) c.lineTo(modified[i].x, modified[i].y);
+
+			c.save();
+			c.lineJoin = "bevel"; // daha keskin, piksel hatası azaltır
+			c.lineCap  = "butt";
+			c.miterLimit = 3;
+			let color = this.getColor(litValues[s]);
+			c.strokeStyle = (s % 2 === 0) ? darkenRGBA(color, 0.02) : color;
+			c.lineWidth = lineW;
+			c.stroke();
+			c.restore();
+			}

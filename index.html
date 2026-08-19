@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width = device-width, initial-scale =1.0">
+		<title>Logic Gates</title>
+		<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+		
+
+		<style>
+			
+
+			.gateBox {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 1px;
+				height: 100px;
+				background-color: rgb(20,20,20);
+				color: white;
+				box-shadow: none;
+				font-size: 60px;
+				border: none;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 0px;
+				font-family: JetBrains Mono;
+				z-index: 10
+			}
+
+			.newProject {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 1px;
+				height: 100px;
+				background-color: rgb(20,20,20);
+				color: white;
+				box-shadow: none;
+				font-size: 60px;
+				border: none;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 0px;
+				font-family: JetBrains Mono;
+				z-index: 10
+			}
+
+			.findInput {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 1px;
+				height: 1px;
+				background-color: rgb(20,20,20);
+				color: white;
+				box-shadow: none;
+				font-size: 70px;
+				border: none;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 0px;
+				font-family: JetBrains Mono;
+				z-index: 10
+			}
+
+			.option {
+				position: absolute;
+				top: 0px; 
+				left: 0px;
+				width: 0px;
+				height: 0px;
+				background-color: rgb(20,20,20);
+				color: white;
+				box-shadow: none;
+				font-size: 28px;
+				border: none;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 0px;
+				font-family: JetBrains Mono;
+				z-index: 10
+			}
+
+			.pulseEdit {
+				position: absolute;
+				top: 0px; 
+				left: 0px;
+				width: 0px;
+				height: 0px;
+				background-color: rgb(20,20,20);
+				color: white;
+				box-shadow: none;
+				font-size: 28px;
+				border: none;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 0px;
+				font-family: JetBrains Mono;
+				z-index: 10
+			}
+
+			.pinBox {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 200px;
+				height: 25px;
+				background-color: rgb(20, 20, 20);
+				color: rgb(255, 255, 255);
+				/*box-shadow: 0 0 0 2px black; */ 
+				font-size:48px;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 20px;
+				padding-top: 10px;
+				padding-bottom: 10px;
+				border: none;
+				font-family: JetBrains Mono;
+				letter-spacing: 1.2px;
+				font-weight: bold;
+				z-index: 10
+			}
+
+			.universalInput {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 200px;
+				height: 25px;
+				background-color: rgb(20, 20, 20);
+				color: rgb(255, 255, 255);
+				/*box-shadow: 0 0 0 2px black; */ 
+				font-size:48px;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 20px;
+				padding-top: 10px;
+				padding-bottom: 10px;
+				border: none;
+				font-family: JetBrains Mono;
+				letter-spacing: 0.5px;
+				font-weight: bold;
+				z-index: 10
+			}
+
+			.colorPickerInput {
+				position: absolute;
+				top: 1px; 
+				left: 1px;
+				width: 200px;
+				height: 25px;
+				background-color: rgb(20, 20, 20);
+				color: rgb(255, 255, 255);
+				/*box-shadow: 0 0 0 2px black; */ 
+				font-size:28px;
+				visibility: hidden;
+				padding-left: 20px;
+				padding-right: 20px;
+				padding-top: 10px;
+				padding-bottom: 10px;
+				border: none;
+				font-family: JetBrains Mono;
+				letter-spacing: 0.5px;
+				font-weight: bold;
+				z-index: 10;
+
+			}
+
+			.input-wrapper {
+ 			 	position: relative;
+			}
+
+			textarea:focus, input:focus{
+    			outline: none;
+			}
+
+			.gateBox::placeholder {
+				position: absolute;
+				color: rgb(90,90,90);
+				font-size: 60px;
+			}
+
+			.pinBox::placeholder {
+				position: absolute;
+				color:  rgb(90,90,90);
+				font-size: 48px;	
+			}
+
+			.universalInput::placeholder {
+				position: absolute;
+				color:  rgb(90,90,90);
+				font-size: 48px;
+			}
+
+			.colorPickerInput::placeholder {
+				position: absolute;
+				color:  rgb(90,90,90);
+				font-size: 28px;
+			}
+
+			input:focus::-webkit-input-placeholder {
+    			color: transparent;
+			}
+
+        	.bold {
+            	font-weight: bold;
+        	}
+
+			#rom-container {
+				width: 710px;      /* rectangle genişliği */
+				height: 820px;     /* rectangle yüksekliği */
+				left: 595px;
+				top: -14.5px;
+				overflow-y: hidden; /* dikey kaydırma */
+				position: absolute !important;
+			}
+
+			.romRow {
+				position: absolute;
+				left: 0;
+				width: 710px;
+				box-sizing: border-box;
+			}
+
+			.romRow:nth-child(even) {
+				background-color: rgb(33,33,33);
+			}
+
+			.romRow:nth-child(odd) {
+				background-color: rgb(43,43,43);
+			}
+
+			.romRow.focused {
+				background-color: rgb(84,140,84) !important;
+			}
+
+			.index {
+				position: absolute;
+				left: 10px;
+				top: 50%;
+				transform: translateY(-50%);
+				font-family: JetBrains Mono;
+				font-size: 28px;
+				color: rgb(82,82,82);
+				pointer-events: none; 
+				z-index: 2;
+				font-weight: bold;
+			}
+
+			.romInput {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 610px;      
+				height: 100%;
+				font-family: JetBrains Mono;
+				font-size: 28px;
+				color: white;
+				border: none;
+				outline: none;
+				padding-left: 100px;
+				padding-right: 0px;
+				padding-top: 0px; 
+				padding-bottom: 0px; 
+				z-index: 1;
+				background: transparent;
+				font-weight: bold;
+			}
+
+			
+
+		</style>
+	</head>
+	<body style="margin: 0px;">
+		<canvas id="canvas" solid style="position: absolute;"></canvas>
+		<input type="text" name="gateBox" class="gateBox" id="gateBox" placeholder="Name" maxlength="18" spellcheck="false">
+		<input type="text" name="pinBox" class="pinBox" id="pinBox" placeholder="Label" maxlength="18" spellcheck="false">
+		<input type="text" name="universalInput" class="universalInput" id="universalInput" placeholder="" maxlength="18" spellcheck="false">
+		<input type="text" name="colorPickerInput" class="colorPickerInput" id="colorPickerInput" placeholder="#" maxlength="7" spellcheck="false">
+		<input type="text" name="sps" class="option" id="sps" placeholder="1" maxlength="6" spellcheck="false">
+		<input type="text" name="spct" class="option" id="spct" placeholder="1" maxlength="6" spellcheck="false">
+		<input type="text" name="pe" class="pulseEdit" id="pe" placeholder="50" maxlength="4" spellcheck="false">
+		<input type="text" name="newProject" class="newProject" id="newProject" maxlength="20" spellcheck="false">
+		<input type="text" name="findInput" class="findInput" id="findInput" maxlength="22" spellcheck="false">
+		<div id="rom-container"></div>
+		<script src="./mouse_keyboard.js"></script>	
+		<script src="./gate.js"></script>
+		<script src="./display.js"></script>
+		<script src="./input.js"></script>
+		<script src="./output.js"></script>
+		<script src="./bus.js"></script>
+		<script src="./cable.js"></script>
+		<script src="./button.js"></script>
+		<script src="./contextMenu.js"></script>
+		<script src="./checkbox.js"></script>
+		<script src="./colorPicker.js"></script>
+		<script src="./wheel.js"></script>
+		<script src="./sketch.js"></script>
+		<script src="./saveFile.js"></script>
+	</body>
+</html>
